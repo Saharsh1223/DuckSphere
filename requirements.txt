@@ -1,0 +1,6 @@
+discord
+chess
+Pillow
+#io
+firebase_admin
+py-dotenv
