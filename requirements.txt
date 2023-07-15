@@ -1,5 +1,6 @@
 discord
 chess
+python-chess
 Pillow
 #io
 firebase_admin

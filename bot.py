@@ -1,16 +1,16 @@
 import discord
-from discord import app_commands
+from discord import app_commands # type: ignore
 from discord.ext import commands
 #from discord import ButtonStyle, Button
 from PIL import Image
 import random
 import board
-import chess
+import chess # type: ignore
 import io
-import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import firestore
-from py_dotenv import read_dotenv
+import firebase_admin # type: ignore
+from firebase_admin import credentials # type: ignore
+from firebase_admin import firestore # type: ignore
+from py_dotenv import read_dotenv # type: ignore
 import os
 
 bot = commands.Bot(command_prefix='c.', intents=discord.Intents.all())
@@ -21,19 +21,19 @@ db = firestore.client()
 
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
+    print(f'Logged in as {bot.user} (ID: {bot.user.id})') #type: ignore
     try:
-        synced = await bot.tree.sync()
+        synced = await bot.tree.sync() #type: ignore
         print(f'Synced {len(synced)} commands')
     except Exception as e:
         print(e)
 
-@bot.tree.command(name='synccommands')
+@bot.tree.command(name='synccommands') #type: ignore
 async def synccommands(interaction):
     await interaction.response.defer()
 
     try:
-        synced = await bot.tree.sync()
+        synced = await bot.tree.sync() #type: ignore
         await interaction.followup.send(f'Synced {len(synced)} commands')
         print(f'Synced {len(synced)} commands')
     except Exception as e:
@@ -65,7 +65,7 @@ async def synccommands(interaction):
 #     except Exception as e:
 #         await interaction.followup.send(f'Error: {e}')
 
-@bot.tree.command(name='addprofile', description='Add your profile to the database!')
+@bot.tree.command(name='addprofile', description='Add your profile to the database!') #type: ignore
 @app_commands.describe(username = 'THe username you want for your profile!')
 async def addprofile(interaction, username: str):
     await interaction.response.defer()
@@ -79,7 +79,7 @@ async def addprofile(interaction, username: str):
     except Exception as e:
         await interaction.followup.send(f'Error: {e}')
 
-@bot.tree.command(name='getprofile', description='Get a profile from the database!')
+@bot.tree.command(name='getprofile', description='Get a profile from the database!') #type: ignore
 @app_commands.describe(username = 'The username of the profile you want to get!')
 async def getprofile(interaction, username: str):
     await interaction.response.defer()
@@ -125,7 +125,7 @@ async def getprofile(interaction, username: str):
 #     async def end(self, interaction: discord.Interaction, button: discord.ui.Button):
 #         await interaction.response.edit_message(content='End')
 
-@bot.tree.command(name='getgame', description='Get a Game from the database!')
+@bot.tree.command(name='getgame', description='Get a Game from the database!') #type: ignore
 @app_commands.describe(gameid = 'The ID of the Game you want to get!')
 async def getgame(interaction, gameid: str):
     await interaction.response.defer()
@@ -244,7 +244,7 @@ async def getgame(interaction, gameid: str):
 #     except Exception as e:
 #         await interaction.followup.send(f'Error fetching game: {e}')
 
-@bot.tree.command(name='move', description='Move a piece in the Game you\'re playing!')
+@bot.tree.command(name='move', description='Move a piece in the Game you\'re playing!') #type: ignore
 @app_commands.describe(moveto = 'Where you are moving the piece to?')
 @app_commands.describe(movefrom = 'Where you are moving the piece from?')
 async def move(interaction, movefrom: str, moveto: str):
@@ -272,7 +272,7 @@ async def move(interaction, movefrom: str, moveto: str):
             await interaction.followup.send(f'Error: {moveto} is an invalid move!', ephemeral=True)
             return
 
-        turn = cb.turn
+        turn = cb.turn # pyright: ignore
 
         if turn == chess.WHITE:
             turn = 'black'
@@ -300,12 +300,11 @@ async def move(interaction, movefrom: str, moveto: str):
 
         if isover == 'checkmate':
             username_won = ''
-            if turn == 'black':
-                username_won = user_black_name
+            user_won_ref = users_ref.document(username_won)
 
-            elif turn == 'white':
-                username_won = user_white_name
-            player_won_id = users_ref.document(username_won).get().to_dict()['id']
+            if turn == 'black': username_won = user_black_name
+            elif turn == 'white': username_won = user_white_name
+            player_won_id = user_won_ref.get().to_dict()['id']
 
             b_arr = board.image_to_byte_array(b)
             gamedoc_ref.set({'id': gameid, 'fen': fen, 'board_arr': b_arr, 'movesdone': movesdone + 1, 'ischeckmate': True, 'isstalemate': False, 'player_won_id': player_won_id}, merge=True)
@@ -330,7 +329,7 @@ async def move(interaction, movefrom: str, moveto: str):
                 users_ref.document(user_black_name).update({'wins': users_ref.document(user_black_name).get().to_dict()['wins'] + 1})
 
             with io.BytesIO() as image_binary:
-                b.save(image_binary, 'PNG')
+                b.save(image_binary, 'PNG') # pyright: ignore
                 image_binary.seek(0)
 
                 file = discord.File(fp=image_binary, filename='board.png')
@@ -355,7 +354,7 @@ async def move(interaction, movefrom: str, moveto: str):
             gamedoc_ref.set({'id': gameid, 'fen': fen, 'board_arr': b_arr, 'movesdone': movesdone + 1, 'ischeckmate': False, 'isstalemate': True}, merge=True)
 
             with io.BytesIO() as image_binary:
-                b.save(image_binary, 'PNG')
+                b.save(image_binary, 'PNG') # pyright: ignore
                 image_binary.seek(0)
 
                 file = discord.File(fp=image_binary, filename='board.png')
@@ -383,7 +382,7 @@ async def move(interaction, movefrom: str, moveto: str):
         moves_ref.set({'move': movefrom + moveto})
 
         with io.BytesIO() as image_binary:
-            b.save(image_binary, 'PNG')
+            b.save(image_binary, 'PNG') # pyright: ignore
             image_binary.seek(0)
 
             file = discord.File(fp=image_binary, filename='board.png')
@@ -401,13 +400,10 @@ async def move(interaction, movefrom: str, moveto: str):
     else:
         await interaction.followup.send(f'Error: A Game with ID `{gameid}` does not exist in the database!')
         return
-
-        # await interaction.response.send_message(f'You are moving to {moveto}')
-
     #except Exception as e:
         #await interaction.followup.send(f'Error: {e}')
 
-@bot.tree.command(name='invite', description='Invite a player in this server to play a Game!')
+@bot.tree.command(name='invite', description='Invite a player in this server to play a Game!') # type: ignore
 @app_commands.describe(opponent = 'The opponent name want to invite')
 async def invite(interaction, opponent: str):
     await interaction.response.defer()
@@ -415,7 +411,6 @@ async def invite(interaction, opponent: str):
     try:
         users_ref = db.collection(u'users')
         username_doc = users_ref.document(opponent)
-        #users = users_ref.stream()
 
         username = username_doc.get().to_dict()['username']
         discord_id = username_doc.get().to_dict()['id']
@@ -446,7 +441,7 @@ async def invite(interaction, opponent: str):
     except Exception as e:
         await interaction.followup.send(f'Error: {e}')
 
-@bot.tree.command(name='accept', description='Accept an invite from a player in this server for a Game!')
+@bot.tree.command(name='accept', description='Accept an invite from a player in this server for a Game!') # type: ignore
 @app_commands.describe(opponent = 'The opponent\'s name you want to accept an invite from!')
 async def accept(interaction, opponent: str):
     await interaction.response.defer()
@@ -538,7 +533,7 @@ async def accept(interaction, opponent: str):
     except Exception as e:
         await interaction.followup.send(f'Error: {e}')
 
-@bot.tree.command(name='decline', description='Decline an invite from a player in this server for a Game!')
+@bot.tree.command(name='decline', description='Decline an invite from a player in this server for a Game!') # type: ignore
 @app_commands.describe(opponent = 'The opponent\'s name you want to decline an invite from!')
 async def decline(interaction, opponent: str):
     await interaction.response.defer()

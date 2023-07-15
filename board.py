@@ -1,10 +1,10 @@
 from PIL import Image
-import chess.pgn
+import chess.pgn as pgn #type: ignore
 import io
 from io import StringIO
 import random
 #from board_to_fen.predict import get_fen_from_image
-import chess
+import chess #type: ignore
 
 coords = {
     'a8' : [-20, -20], 'b8' : [220, -20], 'c8' : [450, -20], 'd8' : [680, -20], 'e8' : [910, -20], 'f8' : [1140, -20], 'g8' : [1370, -20], 'h8' : [1600, -20],
@@ -87,26 +87,26 @@ def movepiece(movefrom, moveto, b, cb):
 
     isover = ''
 
-    # capturedpiececoords = []
+    capturedpiececoords = []
 
-    # if (getcapturedpiece(cb, str(moveto)) != 0):
-    #     capturedpiececoords = coords[moveto.lower()]
+    if (getcapturedpiece(cb, str(moveto)) != 0):
+        capturedpiececoords = coords[moveto.lower()]
 
-    #     cpx = capturedpiececoords[0]
-    #     cpy = capturedpiececoords[1]
+        cpx = capturedpiececoords[0]
+        cpy = capturedpiececoords[1]
 
-    #     capturedpiecesq = solve(moveto)
-    #     capturedpiecesqcolor = ''
+        capturedpiecesq = solve(moveto)
+        capturedpiecesqcolor = ''
 
-    #     if capturedpiecesq == True:
-    #         capturedpiecesqcolor = 'ls'
-    #     else:
-    #         capturedpiecesqcolor = 'bs'
+        if capturedpiecesq == True:
+            capturedpiecesqcolor = 'ls'
+        else:
+            capturedpiecesqcolor = 'bs'
 
-    #     cpsq = Image.open('resources/' + str(capturedpiecesqcolor) + '.png').convert("RGBA").copy()
-    #     b.paste(cpsq, (cpx, cpy), cpsq)
+        cpsq = Image.open('resources/' + str(capturedpiecesqcolor) + '.png').convert("RGBA").copy()
+        b.paste(cpsq, (cpx, cpy), cpsq)
 
-    # cb.push_san(moveto)
+    cb.push_san(moveto)
 
     movefromcoords = coords[movefrom.lower()]
     movetocoords = coords[moveto.lower()]
