@@ -1,8 +1,5 @@
 import math
 
-# Initial Elo ratings
-initial_rating = 1200
-
 # Function to calculate the expected probability of winning
 def expected_probability(rating_a, rating_b):
     return 1 / (1 + math.pow(10, (rating_b - rating_a) / 400))
@@ -26,8 +23,8 @@ def update_elo_rating(rating_a, rating_b, outcome, k_factor=20):
     return round(new_rating_a), round(new_rating_b)
 
 # # Example usage
-# player_a_rating = initial_rating
-# player_b_rating = initial_rating
+# player_a_rating = 200
+# player_b_rating = 600
 
 # print("Initial Ratings:")
 # print("Player A: ", player_a_rating)

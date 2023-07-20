@@ -5,6 +5,7 @@ from discord.ext import commands
 from PIL import Image
 import random
 import board
+import elo
 import chess # type: ignore
 import io
 import firebase_admin # type: ignore
@@ -67,14 +68,22 @@ async def synccommands(interaction):
 
 @bot.tree.command(name='addprofile', description='Add your profile to the database!') #type: ignore
 @app_commands.describe(username = 'THe username you want for your profile!')
-async def addprofile(interaction, username: str):
+@app_commands.choices(elo=[
+    app_commands.Choice(name='New to Chess: 400', value='400'),
+    app_commands.Choice(name='Beginner: 800', value='800'),
+    app_commands.Choice(name='Intermediate: 1200', value='1200'),
+    app_commands.Choice(name='Advanced: 1600', value='1600'),
+    app_commands.Choice(name='Expert: 2000', value='2000'),
+])
+@app_commands.describe(elo = 'What do you want your elo to be? (Choose visely as you cannot change it later)')
+async def addprofile(interaction, username: str, elo: app_commands.Choice[str]):
     await interaction.response.defer()
     try:
         userdoc_ref = db.collection(u'users').document(username)
         if userdoc_ref.get().exists:
             await interaction.followup.send('Error: You already have a profile!')
             return
-        userdoc_ref.set({'id': str(interaction.user.id), 'username': username, 'discord_username': interaction.user.name, 'wins': 0, 'losses': 0, 'draws': 0, 'is_inviting': False, 'is_playing': False, 'playing_game_id': '', 'inviting_player': ''})
+        userdoc_ref.set({'id': str(interaction.user.id), 'username': username, 'discord_username': interaction.user.name, 'wins': 0, 'losses': 0, 'draws': 0, 'is_inviting': False, 'is_playing': False, 'playing_game_id': '', 'inviting_player': '', 'elo': f'{elo}'})
         await interaction.followup.send(f'Added profile with username as `{username}`!')
     except Exception as e:
         await interaction.followup.send(f'Error: {e}')
@@ -288,6 +297,9 @@ async def move(interaction, movefrom: str, moveto: str):
         user_white_name = user_white.get().to_dict()['username']
         user_black_name = user_black.get().to_dict()['username']
 
+        user_white_elo = user_white.get().to_dict()['elo']
+        user_black_elo = user_black.get().to_dict()['elo']
+
         if (
             turn == 'black'
             and user_black_discord_name != interaction.user.name
@@ -300,10 +312,24 @@ async def move(interaction, movefrom: str, moveto: str):
 
         if isover == 'checkmate':
             username_won = ''
-            user_won_ref = users_ref.document(username_won)
+            username_lost = ''
 
-            if turn == 'black': username_won = user_black_name
-            elif turn == 'white': username_won = user_white_name
+            if turn == 'black':
+                username_won = user_black_name
+                username_lost = user_white_name
+            elif turn == 'white':
+                username_won = user_white_name
+                username_lost = user_black_name
+
+            user_won_ref = users_ref.document(username_won)
+            user_lost_ref = users_ref.document(username_lost)
+
+            user_won_elo = user_won_ref.get().to_dict()['elo']
+            user_lost_elo = user_lost_ref.get().to_dict()['elo']
+
+            user_won_new_elo, user_lost_new_elo = elo.update_elo_rating(int(user_won_elo), int(user_lost_elo), 'win')
+            print('User won elo: ' + str(user_won_new_elo) + 'User lost elo:' + str(user_lost_new_elo))
+
             player_won_id = user_won_ref.get().to_dict()['id']
 
             b_arr = board.image_to_byte_array(b)
@@ -316,17 +342,17 @@ async def move(interaction, movefrom: str, moveto: str):
             users_ref.document(user_black_name).update({'is_playing': False, 'is_inviting': False, 'inviting_player': False, 'playing_game_id': ''})
 
             if username_won == user_white_discord_name :
-                user_white.update({'wins': user_white.get().to_dict()['wins'] + 1})
-                user_black.update({'losses': user_black.get().to_dict()['losses'] + 1})
+                user_white.update({'wins': user_white.get().to_dict()['wins'] + 1, 'elo': str(user_won_new_elo)}, merge=True)
+                user_black.update({'losses': user_black.get().to_dict()['losses'] + 1, 'elo': str(user_lost_new_elo)}, merge=True)
 
-                users_ref.document(user_white_name).update({'wins': users_ref.document(user_white_name).get().to_dict()['wins'] + 1})
-                users_ref.document(user_black_name).update({'losses': users_ref.document(user_black_name).get().to_dict()['losses'] + 1})
+                users_ref.document(user_white_name).update({'wins': users_ref.document(user_white_name).get().to_dict()['wins'] + 1, 'elo': str(user_won_new_elo)}, merge=True)
+                users_ref.document(user_black_name).update({'losses': users_ref.document(user_black_name).get().to_dict()['losses'] + 1, 'elo': str(user_lost_new_elo)}, merge=True)
             elif username_won == user_black_discord_name :
-                user_white.update({'losses': user_white.get().to_dict()['losses'] + 1})
-                user_black.update({'wins': user_black.get().to_dict()['wins'] + 1})
+                user_white.update({'losses': user_white.get().to_dict()['losses'] + 1, 'elo': str(user_lost_new_elo)}, merge=True)
+                user_black.update({'wins': user_black.get().to_dict()['wins'] + 1, 'elo': str(user_won_new_elo)}, merge=True)
 
-                users_ref.document(user_white_name).update({'losses': users_ref.document(user_white_name).get().to_dict()['losses'] + 1})
-                users_ref.document(user_black_name).update({'wins': users_ref.document(user_black_name).get().to_dict()['wins'] + 1})
+                users_ref.document(user_white_name).update({'losses': users_ref.document(user_white_name).get().to_dict()['losses'] + 1, 'elo': str(user_lost_new_elo)}, merge=True)
+                users_ref.document(user_black_name).update({'wins': users_ref.document(user_black_name).get().to_dict()['wins'] + 1, 'elo': str(user_won_new_elo)}, merge=True)
 
             with io.BytesIO() as image_binary:
                 b.save(image_binary, 'PNG') # pyright: ignore
@@ -437,7 +463,7 @@ async def invite(interaction, opponent: str):
         em.set_footer(text=f'User ID: {thisdiscord_member.id}')
         await channel.send(embed=em)
 
-        await interaction.followup.send(f'Invite sent to {discord_member.mention}!')
+        await interaction.followup.send(f'Invite successfully sent to {discord_member.mention} a.k.a. **{username}**!')
     except Exception as e:
         await interaction.followup.send(f'Error: {e}')
 
@@ -470,6 +496,8 @@ async def accept(interaction, opponent: str):
 
             await interaction.followup.send(f'Error: {opponent_name} is not inviting you!')
             return
+        
+        opponent_doc.update({'is_inviting': False, 'inviting_player': ''})
 
         thisuser_doc = users_ref.document(str(this_username))
 
@@ -493,6 +521,9 @@ async def accept(interaction, opponent: str):
 
         white_discord_id = white_doc.get().to_dict()['id']
         black_discord_id = black_doc.get().to_dict()['id']
+
+        white_elo = white_doc.get().to_dict()['elo']
+        black_elo = black_doc.get().to_dict()['elo']
 
         white_discord_member = await bot.fetch_user(white_discord_id)
         black_discord_member = await bot.fetch_user(black_discord_id)
@@ -521,7 +552,7 @@ async def accept(interaction, opponent: str):
             image_binary.seek(0)
 
             file = discord.File(fp=image_binary, filename='board.png')
-            embed = discord.Embed(title=f'**{white_username}** vs **{black_username}**', description=f'Game ID: `{gameid}`, {white_discord_member.mention} plays as White and {black_discord_member.mention} plays as Black!', color=769656)
+            embed = discord.Embed(title=f'**{white_username}**: **{white_elo}** elo vs **{black_username}**: **{black_elo}** elo', description=f'Game ID: `{gameid}`, {white_discord_member.mention} plays as White and {black_discord_member.mention} plays as Black!', color=769656)
             embed.set_image(url='attachment://board.png')
 
             thisuser_doc.set({'is_playing': True, 'playing_game_id': f'{gameid}'}, merge=True)
@@ -529,6 +560,24 @@ async def accept(interaction, opponent: str):
 
             opponent_doc.set({'is_inviting': False}, merge=True)
 
+            embed2 = discord.Embed(title=f'', description=f'', color=769656)
+            embed2.add_field(name='White', value=f'**{white_username}** (**{white_elo}** elo)', inline=False)
+            embed2.add_field(name='Black', value=f'**{black_username}** (**{black_elo}** elo)', inline=False)
+
+            white_wins_rating, black_losses_rating = elo.update_elo_rating(int(white_elo), int(black_elo), 'win')
+            white_win_rating_diff = white_wins_rating - int(white_elo)
+            black_loss_rating_diff = int(black_elo) - black_losses_rating
+
+            white_losses_rating, black_wins_rating = elo.update_elo_rating(int(black_elo), int(white_elo), 'win')
+            white_loss_rating_diff = white_losses_rating - int(white_elo)
+            black_win_rating_diff = int(black_elo) - black_wins_rating
+
+            embed2.add_field(name=f'If {white_username} wins', value=f'**{white_username}** will gain **{white_win_rating_diff}** elo and **{black_username}** will lose **{black_loss_rating_diff}** elo', inline=False)
+            embed2.add_field(name=f'If {black_username} wins', value=f'**{black_username}** will gain **{black_win_rating_diff}** elo and **{white_username}** will lose **{white_loss_rating_diff}** elo', inline=False)
+
+            embed2.set_footer(text=f'Game ID: {gameid}')
+
+            await interaction.followup.send(f'{white_discord_member.mention} vs {black_discord_member.mention}', embed=embed2, ephemeral=True)
             await interaction.followup.send(embed=embed, file=file)
     except Exception as e:
         await interaction.followup.send(f'Error: {e}')
