@@ -76,7 +76,7 @@ async def synccommands(interaction):
     app_commands.Choice(name='Expert: 2000', value='2000'),
 ])
 @app_commands.describe(elo = 'What do you want your elo to be? (Choose visely as you cannot change it later)')
-async def addprofile(interaction, username: str, elo: app_commands.Choice[str]):
+async def addprofile(interaction, username: str, elo: str):
     await interaction.response.defer()
     try:
         userdoc_ref = db.collection(u'users').document(username)
@@ -104,7 +104,7 @@ async def getprofile(interaction, username: str):
                 color=769656,
             )
             embed.set_author(name=f'{username} | User Profile', icon_url=f'{user.avatar}')
-            embed.add_field(name='Info', value=f'Username: `{userdoc_ref.get().to_dict()["username"]}`\nDiscord Username: `{userdoc_ref.get().to_dict()["discord_username"]}`\nWins: `{userdoc_ref.get().to_dict()["wins"]}`\nLosses: `{userdoc_ref.get().to_dict()["losses"]}`\nDraws: `{userdoc_ref.get().to_dict()["draws"]}`\nIs Inviting: `{userdoc_ref.get().to_dict()["is_inviting"]}`\nIs Playing: `{userdoc_ref.get().to_dict()["is_playing"]}`', inline=False)
+            embed.add_field(name='Info', value=f'Username: `{userdoc_ref.get().to_dict()["username"]}`\nDiscord Username: `{userdoc_ref.get().to_dict()["discord_username"]}`\nElo: `{userdoc_ref.get().to_dict()["elo"]}`\nWins: `{userdoc_ref.get().to_dict()["wins"]}`\nLosses: `{userdoc_ref.get().to_dict()["losses"]}`\nDraws: `{userdoc_ref.get().to_dict()["draws"]}`\nIs Inviting: `{userdoc_ref.get().to_dict()["is_inviting"]}`\nIs Playing: `{userdoc_ref.get().to_dict()["is_playing"]}`', inline=False)
 
             await interaction.followup.send(embed=embed)
         else:
@@ -187,71 +187,94 @@ async def getgame(interaction, gameid: str):
     except Exception as e:
         await interaction.followup.send(f'Error fetching game: {e}')
 
-# @bot.tree.command(name='resign', description='Resign from the Game you\'re playing!')
-# @app_commands.describe(gameid = 'The ID of the Game you want to resign from!')
-# async def resign(interaction, gameid: str):
-#     await interaction.response.defer()
-#     try:
-#         users_ref = db.collection(u'users')
-#         games_ref = db.collection(u'games')
-        
-#         #gameid = users_ref.document(getusernamefromid(interaction.user.id)).get().to_dict()['playing_game_id']
+@bot.tree.command(name='resign', description='Resign from the Game you\'re playing!')
+async def resign(interaction):
+    await interaction.response.defer()
+    #try:
+    users_ref = db.collection(u'users')
+    games_ref = db.collection(u'games')
 
-#         gamedoc_ref = games_ref.document('game ' + str(gameid))
+    gameid = users_ref.document(getusernamefromid(interaction.user.id)).get().to_dict()['playing_game_id']
 
-#         if gamedoc_ref.get().exists:
-#             player_white = gamedoc_ref.collection(u'players').document(u'white')
-#             player_black = gamedoc_ref.collection(u'players').document(u'black')
+    gamedoc_ref = games_ref.document(f'game {str(gameid)}')
+    print(gameid)
 
-#             player_white_id = player_white.get().to_dict()['id']
-#             player_black_id = player_black.get().to_dict()['id']
+    if gamedoc_ref.get().exists:
+        player_white = gamedoc_ref.collection(u'players').document(u'white')
+        player_black = gamedoc_ref.collection(u'players').document(u'black')
 
-#             if player_white_id == interaction.user.id:
-#                 player_won_id = player_black_id
-#             elif player_black_id == interaction.user.id:
-#                 player_won_id = player_white_id
-#             else:
-#                 await interaction.followup.send(f'Error: You are not in this game!')
-#                 return
+        player_white_id = player_white.get().to_dict()['id']
+        player_black_id = player_black.get().to_dict()['id']
 
-#             player_won_name = getusernamefromid(player_won_id)
-#             player_won_discord = await bot.fetch_user(player_won_id)
+        print(player_white_id)
+        print(player_black_id)
+        print(interaction.user.id)
 
-#             gamedoc_ref.update({
-#                 u'ischeckmate': True,
-#                 u'isstalemate': False,
-#                 u'player_won_id': player_won_id
-#             })
+        player_won_id = ''
 
-#             fen = gamedoc_ref.get().to_dict()['fen']
-#             movesdone = gamedoc_ref.get().to_dict()['movesdone']
-#             player_white_name = player_white.get().to_dict()['username']
-#             player_black_name = player_black.get().to_dict()['username']
+        if str(interaction.user.id) == player_white_id:
+            player_won_id = player_black_id
+        elif str(interaction.user.id) == player_black_id:
+            player_won_id = player_white_id
+        # else:
+        #     await interaction.followup.send('Error: You are not in this game!')
+        #     return
 
-#             with io.BytesIO() as image_binary:
-#                 b = Image.open(io.BytesIO(gamedoc_ref.get().to_dict()['board_arr']))
+        player_won_name = getusernamefromid(player_won_id)
+        player_won_discord = await bot.fetch_user(player_won_id)
 
-#                 b.save(image_binary, 'PNG')
-#                 image_binary.seek(0)
-                
-#                 file = discord.File(fp=image_binary, filename='board.png')
+        user_won_ref = users_ref.document(player_won_name)
+        user_lost_ref = users_ref.document(getusernamefromid(interaction.user.id))
 
-#                 embed = discord.Embed(title=f'{player_white_name} vs {player_black_name}', description=f'**{player_won_name}** won by **Resignation**!', color=769656)
-#                 embed.add_field(name='Info', value=f'Moves Done: `{movesdone}`\nFEN: ```{fen}```', inline=False)
-#                 embed.add_field(name='Players', value=f'White: `{player_white_name}`\nBlack: `{player_black_name}`', inline=False)
-#                 embed.set_author(name=f'Game | {player_won_name} won!', icon_url=f'{player_won_discord.avatar}')
-#                 embed.set_footer(text=f'Game ID: {gameid}')
-#                 embed.set_image(url='attachment://board.png')
+        user_won_elo = user_won_ref.get().to_dict()['elo']
+        user_lost_elo = user_lost_ref.get().to_dict()['elo']
 
-#                 movemovestocompletedgames(gameid)
-#                 moveplayerstocompletedgames(gameid)
+        user_won_new_elo, user_lost_new_elo = elo.update_elo_rating(int(user_won_elo), int(user_lost_elo), 'win')
+        print('User won elo: ' + str(user_won_new_elo) + 'User lost elo:' + str(user_lost_new_elo))
 
-#                 await interaction.followup.send(embed=embed, file=file)
-#         else:
-#             await interaction.followup.send(f'Error: A game with ID `{gameid}` does not exist in the database!')
-#             return
-#     except Exception as e:
-#         await interaction.followup.send(f'Error fetching game: {e}')
+        user_won_ref.update({
+            u'elo': user_won_new_elo
+        })
+
+        user_lost_ref.update({
+            u'elo': user_lost_new_elo
+        })
+
+        gamedoc_ref.update({
+            u'ischeckmate': True,
+            u'isstalemate': False,
+            u'player_won_id': player_won_id
+        })
+
+        fen = gamedoc_ref.get().to_dict()['fen']
+        movesdone = gamedoc_ref.get().to_dict()['movesdone']
+        player_white_name = player_white.get().to_dict()['username']
+        player_black_name = player_black.get().to_dict()['username']
+
+        with io.BytesIO() as image_binary:
+            b = Image.open(io.BytesIO(gamedoc_ref.get().to_dict()['board_arr']))
+
+            b.save(image_binary, 'PNG')
+            image_binary.seek(0)
+
+            file = discord.File(fp=image_binary, filename='board.png')
+
+            embed = discord.Embed(title=f'{player_white_name} vs {player_black_name}', description=f'**{player_won_name}** won by **Resignation**!', color=769656)
+            embed.add_field(name='Info', value=f'Moves Done: `{movesdone}`\nFEN: ```{fen}```', inline=False)
+            embed.add_field(name='Players', value=f'White: `{player_white_name}`\nBlack: `{player_black_name}`', inline=False)
+            embed.set_author(name=f'Game | {player_won_name} won!', icon_url=f'{player_won_discord.avatar}')
+            embed.set_footer(text=f'Game ID: {gameid}')
+            embed.set_image(url='attachment://board.png')
+
+            movemovestocompletedgames(gameid)
+            moveplayerstocompletedgames(gameid)
+
+            await interaction.followup.send(embed=embed, file=file)
+    else:
+        await interaction.followup.send(f'Error: A game with ID `{gameid}` does not exist in the database!')
+        return
+    #except Exception as e:
+        #await interaction.followup.send(f'Error fetching game: {e}')
 
 @bot.tree.command(name='move', description='Move a piece in the Game you\'re playing!') #type: ignore
 @app_commands.describe(moveto = 'Where you are moving the piece to?')
@@ -342,17 +365,17 @@ async def move(interaction, movefrom: str, moveto: str):
             users_ref.document(user_black_name).update({'is_playing': False, 'is_inviting': False, 'inviting_player': False, 'playing_game_id': ''})
 
             if username_won == user_white_discord_name :
-                user_white.update({'wins': user_white.get().to_dict()['wins'] + 1, 'elo': str(user_won_new_elo)}, merge=True)
-                user_black.update({'losses': user_black.get().to_dict()['losses'] + 1, 'elo': str(user_lost_new_elo)}, merge=True)
+                user_white.update({'wins': user_white.get().to_dict()['wins'] + 1, 'elo': str(user_won_new_elo)})
+                user_black.update({'losses': user_black.get().to_dict()['losses'] + 1, 'elo': str(user_lost_new_elo)})
 
-                users_ref.document(user_white_name).update({'wins': users_ref.document(user_white_name).get().to_dict()['wins'] + 1, 'elo': str(user_won_new_elo)}, merge=True)
-                users_ref.document(user_black_name).update({'losses': users_ref.document(user_black_name).get().to_dict()['losses'] + 1, 'elo': str(user_lost_new_elo)}, merge=True)
+                users_ref.document(user_white_name).update({'wins': users_ref.document(user_white_name).get().to_dict()['wins'] + 1, 'elo': str(user_won_new_elo)})
+                users_ref.document(user_black_name).update({'losses': users_ref.document(user_black_name).get().to_dict()['losses'] + 1, 'elo': str(user_lost_new_elo)})
             elif username_won == user_black_discord_name :
-                user_white.update({'losses': user_white.get().to_dict()['losses'] + 1, 'elo': str(user_lost_new_elo)}, merge=True)
-                user_black.update({'wins': user_black.get().to_dict()['wins'] + 1, 'elo': str(user_won_new_elo)}, merge=True)
+                user_white.update({'losses': user_white.get().to_dict()['losses'] + 1, 'elo': str(user_lost_new_elo)})
+                user_black.update({'wins': user_black.get().to_dict()['wins'] + 1, 'elo': str(user_won_new_elo)})
 
-                users_ref.document(user_white_name).update({'losses': users_ref.document(user_white_name).get().to_dict()['losses'] + 1, 'elo': str(user_lost_new_elo)}, merge=True)
-                users_ref.document(user_black_name).update({'wins': users_ref.document(user_black_name).get().to_dict()['wins'] + 1, 'elo': str(user_won_new_elo)}, merge=True)
+                users_ref.document(user_white_name).update({'losses': users_ref.document(user_white_name).get().to_dict()['losses'] + 1, 'elo': str(user_lost_new_elo)})
+                users_ref.document(user_black_name).update({'wins': users_ref.document(user_black_name).get().to_dict()['wins'] + 1, 'elo': str(user_won_new_elo)})
 
             with io.BytesIO() as image_binary:
                 b.save(image_binary, 'PNG') # pyright: ignore
@@ -651,6 +674,18 @@ def movemovestocompletedgames(gameid):
         destination_doc_ref.collection(collection_id).document(doc.id).set(doc.to_dict())
 
     source_doc_ref.delete()
+
+@bot.tree.command(name='help', description='Get help with the bot!') # type: ignore
+async def help(interaction):
+    await interaction.response.defer()
+
+    embed = discord.Embed(title='Help', description='Help with the bot!', color=0x00ff00)
+    embed.add_field(name='Commands', value='`/invite <username>` to invite a player to a Game of Chess!\n`/accept <username>` to accept an invite from a player!\n`/decline <username>` to decline an invite from a player!\n`/move` to move a piece in an existing Chess Game!\n`/resign` to resign from an existing Chess Game!\n`/addprofile <username>` to create your profile with the given username!\n`/getprofile <username>` to get a profile with the given username!\n`/getgame <gameid>` to get a existing Game in the Database using the Game ID!\n`/help` to view this command!', inline=False)
+
+    embed.set_thumbnail(url=bot.user.avatar)
+    embed.set_footer(text='Solo made by @saharshdev, credits to Chess.com for the Board and Pieces images!')
+
+    await interaction.followup.send(embed=embed)
 
 def addusersdoctogame(source_collection, destination_collection, document_names, white_doc_name, black_doc_name):
 
