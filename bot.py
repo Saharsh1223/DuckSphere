@@ -683,7 +683,7 @@ async def help(interaction):
     embed.add_field(name='Commands', value='`/invite <username>` to invite a player to a Game of Chess!\n`/accept <username>` to accept an invite from a player!\n`/decline <username>` to decline an invite from a player!\n`/move` to move a piece in an existing Chess Game!\n`/resign` to resign from an existing Chess Game!\n`/addprofile <username>` to create your profile with the given username!\n`/getprofile <username>` to get a profile with the given username!\n`/getgame <gameid>` to get a existing Game in the Database using the Game ID!\n`/help` to view this command!', inline=False)
 
     embed.set_thumbnail(url=bot.user.avatar)
-    embed.set_footer(text='Solo made by @saharshdev, credits to Chess.com for the Board and Pieces images!')
+    embed.set_footer(text='Solo made by @saharshdev, credits to Chess.com for the Board and Piece images!')
 
     await interaction.followup.send(embed=embed)
 
