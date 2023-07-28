@@ -29,43 +29,6 @@ async def on_ready():
     except Exception as e:
         print(e)
 
-@bot.tree.command(name='synccommands') #type: ignore
-async def synccommands(interaction):
-    await interaction.response.defer()
-
-    try:
-        synced = await bot.tree.sync() #type: ignore
-        await interaction.followup.send(f'Synced {len(synced)} commands')
-        print(f'Synced {len(synced)} commands')
-    except Exception as e:
-        await interaction.followup.send(f'Error: {e}')
-
-# @bot.tree.command(name='startgame', description='Starts a Game of Chess!')
-# async def startgame(interaction):
-#     await interaction.response.defer()
-
-#     try:
-#         b = board.createboard()
-#         b_arr = board.image_to_byte_array(b)
-#         cb = chess.Board()
-#         gameid = board.generateGameID()
-
-#         gamedoc_ref = db.collection(u'games').document('game ' + str(gameid))
-#         gamedoc_ref.set({'id': gameid, 'fen': cb.fen(), 'board_arr': b_arr, 'movesdone': 0, 'ischeckmate': cb.is_checkmate(), 'isstalemate': cb.is_stalemate()})
-
-#         with io.BytesIO() as image_binary:
-#             b.save(image_binary, 'PNG')
-#             image_binary.seek(0)
-
-#             file = discord.File(fp=image_binary, filename='board.png')
-
-#             embed = discord.Embed(title='**xxx** vs **yyy**', description=f'Game ID: `{gameid}`, **xxx** plays as White and **yyy** plays as Black!', color=769656)
-#             embed.set_image(url='attachment://board.png')
-
-#             await interaction.followup.send(embed=embed, file=file)
-#     except Exception as e:
-#         await interaction.followup.send(f'Error: {e}')
-
 @bot.tree.command(name='addprofile', description='Add your profile to the database!') #type: ignore
 @app_commands.describe(username = 'THe username you want for your profile!')
 @app_commands.choices(elo=[
