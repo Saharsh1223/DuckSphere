@@ -150,7 +150,7 @@ class Resign(commands.Cog):
             user_lost_elo = user_lost_ref.get().to_dict()['elo']
 
             user_won_new_elo, user_lost_new_elo = elo.update_elo_rating(int(user_won_elo), int(user_lost_elo), 'win')
-            print('User won elo: ' + str(user_won_new_elo) + 'User lost elo:' + str(user_lost_new_elo))
+            #print('User won elo: ' + str(user_won_new_elo) + 'User lost elo:' + str(user_lost_new_elo))
 
             user_won_ref.update({
                 u'elo': user_won_new_elo,
