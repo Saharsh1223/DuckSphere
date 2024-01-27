@@ -58,6 +58,15 @@ class Resign(commands.Cog):
             destination_doc_ref.collection(collection_id).document(doc.id).set(doc.to_dict())
 
         source_doc_ref.delete()
+
+    def renamedocumentname(self, original_collection, original_document_id, new_document_name):
+        original_doc_ref = original_collection.document(original_document_id)
+        original_doc = original_doc_ref.get().to_dict()
+
+        new_doc_ref = original_collection.document(new_document_name)
+        new_doc_ref.set(original_doc)
+
+        original_doc_ref.delete()
         
     def addusersdoctogame(self, source_collection, destination_collection, document_names, white_doc_name, black_doc_name):
         for document_name in document_names:
@@ -74,15 +83,6 @@ class Resign(commands.Cog):
                 #print(destination_collection_name)
 
             # source_collection.document(document_name).delete()
-            
-    def renamedocumentname(self, original_collection, original_document_id, new_document_name):
-        original_doc_ref = original_collection.document(original_document_id)
-        original_doc = original_doc_ref.get().to_dict()
-
-        new_doc_ref = original_collection.document(new_document_name)
-        new_doc_ref.set(original_doc)
-
-        original_doc_ref.delete()
 
     def moveplayerstocompletedgames(self, gameid):
         source_collection = db.collection(u'games')

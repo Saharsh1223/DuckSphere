@@ -73,12 +73,12 @@ def createboard():
 
     return board
 
-def movepiece(movefrom, moveto, b, cb):
+def movepiece(movefrom, moveto, b, cb: chess.Board):
 
     ismovevalid = validatemove(cb, movefrom, moveto)
 
     if ismovevalid == False:
-        return None, None, None, None
+        return cb, None, None, None, None
 
     cb.push(chess.Move.from_uci(movefrom + moveto))
 
@@ -166,10 +166,16 @@ def solve(coordinate):
    
 def validatemove(cb, movefrom, moveto):
     legal_moves = list(cb.legal_moves)
-    return any(
-        chess.Move.from_uci(movefrom + moveto) == legal_move
-        for legal_move in legal_moves
-    )
+
+    try:
+        m = chess.Move.from_uci(movefrom + moveto)
+    except chess.InvalidMoveError as e:
+        return False
+
+    for l in legal_moves:
+        if l == m:
+            return True
+    return False
    
 def fen_to_pgn(fen):
     game = chess.pgn.Game.from_board(chess.Board(fen))

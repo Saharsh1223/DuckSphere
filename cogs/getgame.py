@@ -83,7 +83,7 @@ class GetGame(commands.Cog):
 
                     await interaction.followup.send(embed=embed, file=file)
             else:
-                await interaction.followup.send(f'Error: A game with ID `{gameid}` does not exist in the database!')
+                await interaction.followup.send(f'Error: A game with ID `{gameid}` does not exist in the finished games database!')
                 return
         except Exception as e:
             await interaction.followup.send(f'Error fetching game: {e}')

@@ -110,7 +110,7 @@ class Move(commands.Cog):
     @bot.tree.command(name='move', description='Move a piece in the Game you\'re playing!') #type: ignore
     @app_commands.describe(moveto = 'Where you are moving the piece to?')
     @app_commands.describe(movefrom = 'Where you are moving the piece from?')
-    async def move(self, interaction, movefrom: str, moveto: str):
+    async def move(self, interaction: discord.Interaction, movefrom: str, moveto: str):
         await interaction.response.defer()
 
         #try:
@@ -131,17 +131,6 @@ class Move(commands.Cog):
 
             cb, b, fen, pgn, isover = board.movepiece(movefrom, moveto, image, cb_) # pyright: ignore
 
-            if cb is None and b is None and fen is None and pgn is None:
-                await interaction.followup.send(f'Error: {moveto} is an invalid move!', ephemeral=True)
-                return
-
-            turn = cb.turn # pyright: ignore
-
-            if turn == chess.WHITE:
-                turn = 'black'
-            elif turn == chess.BLACK:
-                turn = 'white'
-
             user_white = gamedoc_ref.collection(u'players').document(u'white')
             user_black = gamedoc_ref.collection(u'players').document(u'black')
 
@@ -154,14 +143,23 @@ class Move(commands.Cog):
             user_white_elo = user_white.get().to_dict()['elo']
             user_black_elo = user_black.get().to_dict()['elo']
 
+            turn = cb.turn # pyright: ignore
+
+            if turn == chess.WHITE:
+                turn = 'black'
+            elif turn == chess.BLACK:
+                turn = 'white'
+
             if (
-                turn == 'black'
-                and user_black_discord_name != interaction.user.name
-                or turn != 'black'
-                and turn == 'white'
-                and user_white_discord_name != interaction.user.name
+                (turn == 'black' and user_black_discord_name == interaction.user.name)
+                or 
+                (turn == 'white' and user_white_discord_name == interaction.user.name)
             ):
                 await interaction.followup.send('Error: It is not your turn!', ephemeral=True)
+                return
+            
+            if b is None and fen is None and pgn is None and isover is None:
+                await interaction.followup.send(f'Error: {moveto} is an invalid move!', ephemeral=True)
                 return
 
             if isover == 'checkmate':
