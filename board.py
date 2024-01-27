@@ -98,12 +98,12 @@ def movepiece(movefrom, moveto, b, cb):
         capturedpiecesq = solve(moveto)
         capturedpiecesqcolor = ''
 
-        if capturedpiecesq == True:
-            capturedpiecesqcolor = 'ls'
-        else:
-            capturedpiecesqcolor = 'bs'
-
-        cpsq = Image.open('resources/' + str(capturedpiecesqcolor) + '.png').convert("RGBA").copy()
+        capturedpiecesqcolor = 'ls' if capturedpiecesq == True else 'bs'
+        cpsq = (
+            Image.open(f'resources/{capturedpiecesqcolor}.png')
+            .convert("RGBA")
+            .copy()
+        )
         b.paste(cpsq, (cpx, cpy), cpsq)
 
     #cb.push_san(moveto)
@@ -204,10 +204,7 @@ def getcapturedpiece(board, movefrom, moveto):
     move = chess.Move.from_uci(movefrom + moveto)
 
     if board.is_capture(move):
-        if board.is_en_passant(move):
-            return True
-        else:
-            return True
+        return True if board.is_en_passant(move) else True
     return False
 
 def isedgesquare(square):

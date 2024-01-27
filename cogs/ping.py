@@ -11,7 +11,9 @@ class Ping(commands.Cog):
     @bot.tree.command(name='ping', description='Get my current Latency!')
     async def ping(self, interaction: discord.Interaction):
         ping1 = f"{str(round(self.bot.latency * 1000))} ms"
-        embed = discord.Embed(title = "**Pong!**", description = "**" + ping1 + "**", color = 0xafdafc)
+        embed = discord.Embed(
+            title="**Pong!**", description=f"**{ping1}**", color=0xAFDAFC
+        )
         await interaction.response.send_message(embed = embed)
 
 async def setup(bot):
