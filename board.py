@@ -73,6 +73,35 @@ def createboard():
 
     return board
 
+def create_board_from_fen(fen):
+    board = Image.open('resources/board.png').convert("RGBA").copy()
+
+    piece_mapping = {
+        'k': 'black/K.png', 'q': 'black/Q.png', 'b': 'black/B.png', 'n': 'black/N.png', 'r': 'black/R.png', 'p': 'black/P.png',
+        'K': 'white/K.png', 'Q': 'white/Q.png', 'B': 'white/B.png', 'N': 'white/N.png', 'R': 'white/R.png', 'P': 'white/P.png'
+    }
+
+    row, col = 0, 0
+
+    for char in fen:
+        if char == ' ':
+            break
+        elif char == '/':
+            row += 1
+            col = 0
+        elif char.isdigit():
+            col += int(char)
+        else:
+            piece_image_path = piece_mapping.get(char)
+            if piece_image_path:
+                piece_image = Image.open(f'resources/{piece_image_path}').convert("RGBA").copy()
+                x, y = coords[f'{chr(ord("a") + col)}{8 - row}']
+                board.paste(piece_image, (x, y), piece_image)
+                col += 1
+
+    return board
+
+
 def movepiece(movefrom, moveto, b, cb: chess.Board):
 
     ismovevalid = validatemove(cb, movefrom, moveto)

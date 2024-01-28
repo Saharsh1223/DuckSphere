@@ -126,9 +126,9 @@ class Resign(commands.Cog):
             player_white_id = player_white.get().to_dict()['id']
             player_black_id = player_black.get().to_dict()['id']
 
-            print(player_white_id)
-            print(player_black_id)
-            print(interaction.user.id)
+            # print(player_white_id)
+            # print(player_black_id)
+            # print(interaction.user.id)
 
             player_won_id = ''
 
