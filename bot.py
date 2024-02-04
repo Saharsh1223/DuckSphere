@@ -4,6 +4,7 @@ from discord.ext import commands
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
+from google.cloud import firestore as f
 import os
 import chess
 import json
@@ -89,46 +90,54 @@ db = firestore.client()
 #             )
 
 #             await ctx.channel.send(embed=embed, file=file)
-
 @bot.event
-async def on_message(message):
-        if message.author.bot:
-            return  # Ignore messages from bots
+async def on_message(message: discord.Message):
+    if message.author.bot:
+        return  # Ignore messages from bots
 
-        # Check if the message author is the one who started the puzzle
+    move = message.content.strip().lower()
+    if validate_move(move):
+        # move is valid in terms of syntax
         username = getusernamefromid(message.author.id)
-        userdoc_ref = db.collection(u'users').document(username)
-        user_data = userdoc_ref.get().to_dict()
-        if not user_data or 'puzzle_id' not in user_data:
-            return  # The user is not in a puzzle
-
-        puzzle_id = user_data['puzzle_id']
-        puzzle_ref = db.collection('puzzles').document(puzzle_id)
-        puzzle_data = puzzle_ref.get().to_dict()
-
-        if not puzzle_data or 'moves' not in puzzle_data:
-            return  # Invalid puzzle data
-
-        moves = puzzle_data['moves']
-        stage = user_data.get('stage', 0)
-
-        if stage >= len(moves):
-            return  # Puzzle already solved
-
-        expected_move = moves[stage]
-        user_move = message.content.strip()
-
-        if user_move == expected_move:
-            # Correct move, update the stage
-            stage += 1
-            userdoc_ref.update({'stage': stage})
-
-            if stage == len(moves):
-                # Puzzle solved, you can add additional logic here
-                await message.channel.send("Congratulations! You solved the puzzle.")
+        if username is None:
+            await message.reply('You don\'t seem to have an account. Use `/addprofile` to use this command!')
         else:
-            # Incorrect move, you can handle this as needed
-            await message.channel.send("Incorrect move. Try again.")
+            user_doc = db.collection('users').document(username)
+            user_data = user_doc.get().to_dict()
+
+            if user_data['puzzle_id'] != '':
+                puzzle_current_fen = user_data['fen']
+
+                puzzle_doc = db.collection('puzzles').document(user_data['puzzle_id'])
+                puzzle_data = puzzle_doc.get().to_dict()
+
+                moves_to_solve = puzzle_data['moves_to_solve']
+                stage = user_data['stage']
+
+                if move in moves_to_solve and moves_to_solve[stage] == move:
+                    # move is valid for the puzzle
+
+                    turn = user_data['puzzle_turn']
+
+                    b = chess.Board(puzzle_current_fen)
+                    b.push_uci(move)
+
+                    # check if puzzle has reached end
+                    if (f'{b.board_fen()} {turn}' == puzzle_data['end_fen']):
+                        # puzzle is solved
+                        await message.reply('You\'ve solved the puzzle!')
+                        return
+                    
+                    # push the opponent's move
+                    b.push_uci(puzzle_data['moves'][stage + 1])
+
+                    user_doc.update(
+                        {
+                            'stage': stage + 1,
+                            'fen': f'{b.board_fen()} {turn}'
+                        }
+                    )
+
 
 def getusernamefromid(id):
         users_ref = db.collection(u'users')
@@ -138,6 +147,13 @@ def getusernamefromid(id):
             #print(user.to_dict()['username'])
             if user.to_dict()['id'] == str(id):
                 return user.to_dict()['username']
+
+def validate_move(move: str):
+    try:
+        move = chess.Move.from_uci(move)
+        return True
+    except ValueError:
+        return False
                             
 @bot.event
 async def on_ready():

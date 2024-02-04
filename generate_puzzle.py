@@ -5,7 +5,7 @@ import chess
 def generate_random_puzzle(csv_file, min_rating, max_rating):
     with open(csv_file, 'r') as file:
         puzzles = list(csv.reader(file))
-        
+
     # Skip the header row
     header = puzzles[0]
     puzzles = puzzles[1:]
@@ -33,18 +33,7 @@ def generate_random_puzzle(csv_file, min_rating, max_rating):
     # Extract opening tags from the last column
     opening_tags_list = opening_tags.split()
 
-    # print(f"puzzle_id: {puzzle_id}")
-    # print(f"fen: {fen}")
-    # print(f"moves: {moves}")
-    # print(f"rating: {rating}")
-    # print(f"rating_deviation: {rating_deviation}")
-    # print(f"popularity: {popularity}")
-    # print(f"nb_plays: {nb_plays}")
-    # print(f"themes: {themes}")
-    # print(f"game_url: {game_url}")
-    # print(f"opening_tags: {opening_tags}")
-
-    puzzle_details = {
+    return {
         "Puzzle ID": puzzle_id,
         "Start_FEN": fen,
         "End_FEN": board.fen(),
@@ -55,10 +44,8 @@ def generate_random_puzzle(csv_file, min_rating, max_rating):
         "Number of Plays": int(nb_plays),
         "Themes": themes,
         "Game URL": game_url,
-        "Opening Tags": opening_tags_list
+        "Opening Tags": opening_tags_list,
     }
-
-    return puzzle_details
 
 
 if __name__ == "__main__":

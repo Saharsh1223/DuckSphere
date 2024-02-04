@@ -91,13 +91,11 @@ def create_board_from_fen(fen):
             col = 0
         elif char.isdigit():
             col += int(char)
-        else:
-            piece_image_path = piece_mapping.get(char)
-            if piece_image_path:
-                piece_image = Image.open(f'resources/{piece_image_path}').convert("RGBA").copy()
-                x, y = coords[f'{chr(ord("a") + col)}{8 - row}']
-                board.paste(piece_image, (x, y), piece_image)
-                col += 1
+        elif piece_image_path := piece_mapping.get(char):
+            piece_image = Image.open(f'resources/{piece_image_path}').convert("RGBA").copy()
+            x, y = coords[f'{chr(ord("a") + col)}{8 - row}']
+            board.paste(piece_image, (x, y), piece_image)
+            col += 1
 
     return board
 
@@ -119,22 +117,7 @@ def movepiece(movefrom, moveto, b, cb: chess.Board):
     capturedpiececoords = []
 
     if (getcapturedpiece(cb, movefrom, moveto)):
-        capturedpiececoords = coords[moveto.lower()]
-
-        cpx = capturedpiececoords[0]
-        cpy = capturedpiececoords[1]
-
-        capturedpiecesq = solve(moveto)
-        capturedpiecesqcolor = ''
-
-        if capturedpiecesq == True:
-            capturedpiecesqcolor = 'ls'
-        else:
-            capturedpiecesqcolor = 'bs'
-
-        cpsq = Image.open('resources/' + str(capturedpiecesqcolor) + '.png').convert("RGBA").copy()
-        b.paste(cpsq, (cpx, cpy), cpsq)
-
+        _extracted_from_movepiece_18(moveto, b)
     #cb.push_san(moveto)
 
     movefromcoords = coords[movefrom.lower()]
@@ -151,10 +134,7 @@ def movepiece(movefrom, moveto, b, cb: chess.Board):
 
     piece = cb.piece_at(chess.parse_square(moveto.lower()))
 
-    originalpiecesq = solve(movefrom)
-    originalpiecesqcolor = ''
-
-    originalpiecesqcolor = 'ls' if originalpiecesq == True else 'bs'
+    originalpiecesqcolor = _extracted_from_movepiece_23(movefrom)
     piece_color = ''
     piece_color = 'white' if piece.color == True else 'black'
     fen = cb.fen()
@@ -190,6 +170,30 @@ def movepiece(movefrom, moveto, b, cb: chess.Board):
 
     return cb, b, fen, pgn_, isover
 
+
+# TODO Rename this here and in `movepiece`
+def _extracted_from_movepiece_18(moveto, b):
+    capturedpiececoords = coords[moveto.lower()]
+
+    cpx = capturedpiececoords[0]
+    cpy = capturedpiececoords[1]
+
+    capturedpiecesqcolor = _extracted_from_movepiece_23(moveto)
+    cpsq = (
+        Image.open(f'resources/{capturedpiecesqcolor}.png')
+        .convert("RGBA")
+        .copy()
+    )
+    b.paste(cpsq, (cpx, cpy), cpsq)
+
+
+# TODO Rename this here and in `movepiece`
+def _extracted_from_movepiece_23(arg0):
+    capturedpiecesq = solve(arg0)
+    result = ''
+
+    return 'ls' if capturedpiecesq == True else 'bs'
+
 def solve(coordinate):
     return (ord(coordinate[0]))%2 != int(coordinate[1])%2
    
@@ -201,10 +205,7 @@ def validatemove(cb, movefrom, moveto):
     except chess.InvalidMoveError as e:
         return False
 
-    for l in legal_moves:
-        if l == m:
-            return True
-    return False
+    return m in legal_moves
    
 def fen_to_pgn(fen):
     game = chess.pgn.Game.from_board(chess.Board(fen))
@@ -239,10 +240,7 @@ def getcapturedpiece(board, movefrom, moveto):
     move = chess.Move.from_uci(movefrom + moveto)
 
     if board.is_capture(move):
-        if board.is_en_passant(move):
-            return True
-        else:
-            return True
+        return True if board.is_en_passant(move) else True
     return False
 
 def isedgesquare(square):
